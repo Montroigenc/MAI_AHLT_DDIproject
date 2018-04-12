@@ -127,7 +127,7 @@ class TestParser(unittest.TestCase):
 
     # drugbank
     def test_parse(self):
-        with open("./Train/DrugBank/Almotriptan_ddi.xml") as fd:
+        with open("./LaboCase/Train/DrugBank/Almotriptan_ddi.xml") as fd:
             doc = xmltodict.parse(fd.read())
 
         parse(doc)

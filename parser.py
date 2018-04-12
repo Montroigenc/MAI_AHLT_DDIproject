@@ -1,11 +1,11 @@
-# import xmltodict
-# import json
-#
-# test_xml_path = "./Train/Medline/1109556.xml"
-#
-# with open(test_xml_path) as fd:
-#     doc = xmltodict.parse(fd.read())
-#     # print(json.dumps(doc, sort_keys=True, indent=4))
+import xmltodict
+import json
+
+test_xml_path = "./Train/Medline/1109556.xml"
+
+with open(test_xml_path) as fd:
+    doc = xmltodict.parse(fd.read())
+    print(json.dumps(doc, sort_keys=True, indent=4))
 
 
 def parse(doc):
