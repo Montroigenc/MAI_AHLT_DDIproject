@@ -26,7 +26,7 @@ def parse_sentence(sentence):
     if entity is None:
         return "No entity"   #parsed
 
-    drug_positions = extract_drug_position(entity)
+    drug_positions, entity_types = extract_drug_position(entity)
     bio_array = []; currentPos = 0
     for word in text.split(' '):
         wordBio, currentPos = build_bio(word, text, drug_positions, currentPos)
@@ -67,16 +67,22 @@ def extract_drug_position(entities):
 
     positions = []
     for entity in entities:
-        if "drug" in entity['@type']:
-            if ";" in entity['@charOffset']:
-                entity = entity['@charOffset'].split(';')
-                [(positions.append([int(char) for char in indEntity.split('-')])) for indEntity in entity]
-            else:
-                positions.append([int(char) for char in entity['@charOffset'].split('-')])
-        else:
-            positions.append([-1, -1])
+        # if "drug" in entity['@type']:
+        #     if ";" in entity['@charOffset']:
+        #         entity = entity['@charOffset'].split(';')
+        #         [(positions.append([int(char) for char in indEntity.split('-')])) for indEntity in entity]
+        #     else:
+        #         positions.append([int(char) for char in entity['@charOffset'].split('-')])
+        # else:
+        #     positions.append([-1, -1])
 
-    return positions
+        if ";" in entity['@charOffset']:
+            entity = entity['@charOffset'].split(';')
+            [(positions.append([int(char) for char in indEntity.split('-')])) for indEntity in entity]
+        else:
+            positions.append([int(char) for char in entity['@charOffset'].split('-')])
+
+    return positions, entityTypes
 
 
 inputRoot = "C:/Users/ALEIX/Desktop/AI_Master/2ndQuarter/AHLT/project/ddi/Train"    #"/home/aleix/MAI/AHLT/DDI_project/Train"
