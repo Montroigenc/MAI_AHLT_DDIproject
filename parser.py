@@ -6,6 +6,11 @@
 # with open(test_xml_path) as fd:
 #     doc = xmltodict.parse(fd.read())
 #     # print(json.dumps(doc, sort_keys=True, indent=4))
+from nltk.tokenize.repp import ReppTokenizer
+repp_dir = '/Users/jnalexander/Projects/NLTK/repp'
+tokenizer = ReppTokenizer(repp_dir)
+text = "Serum digoxin levels using an 125I-labelled antigen: Validation of method and observations on cardiac patients."
+tokenizer.tokenize(text)
 
 
 def parse(doc):

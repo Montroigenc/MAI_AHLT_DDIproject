@@ -1,0 +1,15 @@
+mkdir -p /path/to/where/you/wanna/save/repp
+svn co http://svn.delph-in.net/repp/trunk /path/to/where/you/wanna/save/repp
+cd /path/to/where/you/wanna/save/repp/
+aclocal; libtoolize
+autoreconf -i
+./configure CPPFLAGS=-P
+make
+
+If at the ./configure CPPFLAGS=-P step, it shows an error like this on Mac:
+
+configure: error: required ICU library are missing
+Please install and link the ICU library (brew install icu4c && brew link icu4c --force)
+and then retry from the ./configure CPPFLAGS=-P step.
+
+If for any reason, you need to unlink the icu4c, try: brew unlink icu4c.
