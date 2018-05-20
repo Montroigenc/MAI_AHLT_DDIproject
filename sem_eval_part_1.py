@@ -80,12 +80,17 @@ def parse_drug_xml(xml_dir):
                     text = text_from_sentence(sentence)
                     drug_positions = drug_pos_from_sentence(sentence)
                     tagged_text = pos_bio_tagger(text, drug_positions)
-                    yield [((word, pos), bio) for word, pos, bio in tagged_text]
+
+                    if len(tagged_text) > 0:
+                        yield [((word, pos), bio) for word, pos, bio in tagged_text]
 
 
+print("Loading train data")
 train = list(parse_drug_xml(TRAIN_X_DIR))
-# test = list(parse_drug_xml(TEST_X_DIR))
-print(f'training on {len(train)} samples')
-# print(f'testing on {len(test)} samples')
+print("Training chunker")
 chunker = DrugEntityChunker(train)
-print(chunker.parse(pos_tag(word_tokenize("I'm going to Germany this Monday."))))
+print("Loading test data")
+test = list(parse_drug_xml(TEST_X_DIR))
+print(f'Testing parser on {len(train)} samples')
+
+print(chunker.parse(pos_tag(word_tokenize("I take ibuprofen in the mornings."))))

@@ -88,11 +88,12 @@ class DrugEntityChunker(ChunkParserI):
             **kwargs)
 
     def parse(self, tagged_sent):
+        print(tagged_sent)
         chunks = self.tagger.tag(tagged_sent)
 
         # Transform the result from [((w1, t1), iob1), ...]
         # to the preferred list of triplets format [(w1, t1, iob1), ...]
         iob_triplets = [(w, t, c) for ((w, t), c) in chunks]
 
-        # Transform the list of triplets to nltk.Tree format
+        # Transform the list of triplets to nltk. Tree format
         return conlltags2tree(iob_triplets)
