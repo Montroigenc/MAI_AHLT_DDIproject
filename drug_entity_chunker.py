@@ -88,7 +88,6 @@ class DrugEntityChunker(ChunkParserI):
             **kwargs)
 
     def parse(self, tagged_sent):
-        print(tagged_sent)
         chunks = self.tagger.tag(tagged_sent)
 
         # Transform the result from [((w1, t1), iob1), ...]

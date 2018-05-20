@@ -7,7 +7,7 @@ from nltk.chunk import conlltags2tree, tree2conlltags
 TRAIN_X_DIR = './Train/DrugBank'
 TRAIN_Y_DIR = './Train/DrugBankOutput'
 
-TEST_X_DIR = './Test/Test for DDI Extraction task/DrugBank'
+TEST_X_DIR = './Test/Test for DrugNER task/DrugBank'
 TEST_Y_DIR = './Test/DrugBankOutput'
 
 
@@ -91,6 +91,6 @@ print("Training chunker")
 chunker = DrugEntityChunker(train)
 print("Loading test data")
 test = list(parse_drug_xml(TEST_X_DIR))
-print(f'Testing parser on {len(train)} samples')
-
-print(chunker.parse(pos_tag(word_tokenize("I take ibuprofen in the mornings."))))
+print(f'Evaluating {len(test)} samples')
+score = chunker.evaluate([conlltags2tree([(w, t, iob) for (w, t), iob in iobs]) for iobs in test])
+print(f'Accuracy {score.accuracy()}')
