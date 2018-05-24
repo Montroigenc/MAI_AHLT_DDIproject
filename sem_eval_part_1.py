@@ -1,93 +1,105 @@
-import re
-import os
+import string
 from drug_entity_chunker import DrugEntityChunker
-from nltk import word_tokenize, pos_tag, download
+from nltk import download
+from nltk.tag import ClassifierBasedTagger
 from nltk.chunk import conlltags2tree
+from nltk.stem.snowball import SnowballStemmer
+from parser_utils import parse_drug_iob
 
 # NLTK dependencies
 download('punkt')
 download('averaged_perceptron_tagger')
 
+# Directories to find MedLine and DrugBank train and test data
 TRAIN_DIR = './Train/'
 TEST_DIR = './Test/Test for DrugNER task/'
 
 
-def sentence_from_doc(doc):
-    doc = doc.replace('\n', '').replace('</document>', '')
-    sentences = doc.split('<sentence')[1:]
-    return ['<sentence' + str for str in sentences]
+# Features to consider when chunking
+def features(tokens, index, history):
+    """
+    `tokens`  = a POS-tagged sentence [(w1, t1), ...]
+    `index`   = the index of the token we want to extract features for
+    `history` = the previous predicted IOB tags
+    """
 
+    # init the stemmer
+    stemmer = SnowballStemmer('english')
 
-def text_from_sentence(sentence):
-    regex = r'<sentence .*?text="(.*?)".*?>'
-    return re.findall(regex, sentence)[0]
+    # Pad the sequence with placeholders
+    tokens = [('[START2]', '[START2]'), ('[START1]', '[START1]')] + list(tokens) + [('[END1]', '[END1]'), ('[END2]',
+                                                                                                           '[END2]')]
+    history = ['[START2]', '[START1]'] + list(history)
 
+    # shift the index with 2, to accommodate the padding
+    index += 2
 
-def drug_pos_from_sentence(sentence):
-    regex = r'<entity.*?charOffset="(.*?)".*?type="(.*?)"'
-    return re.findall(regex, sentence)
+    word, pos = tokens[index]
+    prevword, prevpos = tokens[index - 1]
+    prevprevword, prevprevpos = tokens[index - 2]
+    nextword, nextpos = tokens[index + 1]
+    nextnextword, nextnextpos = tokens[index + 2]
+    previob = history[index - 1]
+    contains_dash = '-' in word
+    contains_dot = '.' in word
+    allascii = all([True for c in word if c in string.ascii_lowercase])
 
+    allcaps = word == word.capitalize()
+    capitalized = word[0] in string.ascii_uppercase
 
-def is_drug_bank_filename(path):
-    return path.count('DrugBank') > 0 and path[-4:] == '.xml'
+    prevallcaps = prevword == prevword.capitalize()
+    prevcapitalized = prevword[0] in string.ascii_uppercase
 
+    nextallcaps = prevword == prevword.capitalize()
+    nextcapitalized = prevword[0] in string.ascii_uppercase
 
-def is_med_line_filename(path):
-    return path.count('MedLine') > 0 and path[-4:] == '.xml'
+    return {
+        'word': word,
+        'lemma': stemmer.stem(word),
+        'pos': pos,
+        'all-ascii': allascii,
 
+        'next-word': nextword,
+        'next-lemma': stemmer.stem(nextword),
+        'next-pos': nextpos,
 
-def pos_bio_tagger(text, drug_positions):
-    text = text.replace('-', ' ')
-    pos_tags = pos_tag(word_tokenize(text))
-    extended_pos = []
-    find_offset = 0
+        'next-next-word': nextnextword,
+        'nextnextpos': nextnextpos,
 
-    for word, pos in pos_tags:
-        bio = "O"
-        word_start = text.find(word, find_offset)
-        find_offset += text.count(' ', find_offset, find_offset + len(word)) + len(word)
+        'prev-word': prevword,
+        'prev-lemma': stemmer.stem(prevword),
+        'prev-pos': prevpos,
 
-        for drug_pos_str, drug_type in drug_positions:
-            drug_pos_arr = drug_pos_str.split('-')  # expect '100-121' or '100-110;123-130'
-            drug_start, drug_end = int(drug_pos_arr[0]), int(drug_pos_arr[-1]) + 1
+        'prev-prev-word': prevprevword,
+        'prev-prev-pos': prevprevpos,
 
-            if word_start == drug_start:
-                bio = f'B-{drug_type}'
+        'prev-iob': previob,
 
-            if drug_start < word_start < drug_end:
-                bio = f'I-{drug_type}'
+        'contains-dash': contains_dash,
+        'contains-dot': contains_dot,
 
-        extended_pos.append((word, pos, bio))
+        'all-caps': allcaps,
+        'capitalized': capitalized,
 
-    return extended_pos
+        'prev-all-caps': prevallcaps,
+        'prev-capitalized': prevcapitalized,
 
-
-def parse_drug_xml(xml_dir):
-
-    for root, dirs, files in os.walk(xml_dir):
-
-        for file_name in files:
-            path = os.path.join(root, file_name)
-
-            if is_drug_bank_filename(path) or is_med_line_filename(path):
-                doc = open(path, 'rb').read().decode('utf-8')
-                sentences = sentence_from_doc(doc)
-
-                for sentence in sentences:
-                    text = text_from_sentence(sentence)
-                    drug_positions = drug_pos_from_sentence(sentence)
-                    tagged_text = pos_bio_tagger(text, drug_positions)
-
-                    if len(tagged_text) > 0:
-                        yield [((word, pos), bio) for word, pos, bio in tagged_text]
+        'next-all-caps': nextallcaps,
+        'next-capitalized': nextcapitalized,
+    }
 
 
 print("Loading train data")
-train = list(parse_drug_xml(TRAIN_DIR))
+train = list(parse_drug_iob(TRAIN_DIR))
+
 print("Training chunker")
-chunker = DrugEntityChunker(train)
+tagger = ClassifierBasedTagger(train=train, feature_detector=features)
+chunker = DrugEntityChunker(tagger=tagger)  # You can also
+
 print("Loading test data")
-test = list(parse_drug_xml(TEST_DIR))
+test = list(parse_drug_iob(TEST_DIR))
+
 print(f'Evaluating {len(test)} samples')
 score = chunker.evaluate([conlltags2tree([(w, t, iob) for (w, t), iob in iobs]) for iobs in test])
+
 print(str(score))
