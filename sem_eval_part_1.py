@@ -1,18 +1,15 @@
 import re
 import os
 from drug_entity_chunker import DrugEntityChunker
-from nltk import word_tokenize, pos_tag, download, ne_chunk
-from nltk.chunk import conlltags2tree, tree2conlltags
+from nltk import word_tokenize, pos_tag, download
+from nltk.chunk import conlltags2tree
 
 # NLTK dependencies
 download('punkt')
 download('averaged_perceptron_tagger')
 
-TRAIN_X_DIR = './Train/DrugBank'
-TRAIN_Y_DIR = './Train/DrugBankOutput'
-
-TEST_X_DIR = './Test/Test for DrugNER task/DrugBank'
-TEST_Y_DIR = './Test/DrugBankOutput'
+TRAIN_DIR = './Train/'
+TEST_DIR = './Test/Test for DrugNER task/'
 
 
 def sentence_from_doc(doc):
@@ -26,23 +23,17 @@ def text_from_sentence(sentence):
     return re.findall(regex, sentence)[0]
 
 
-def drug_pos_type_from_sentence(sentence):
-    regex = r'charOffset="(.*?)".*?type="(.*?)"'
-    return re.findall(regex, sentence)
-
-
 def drug_pos_from_sentence(sentence):
     regex = r'<entity.*?charOffset="(.*?)".*?type="(.*?)"'
     return re.findall(regex, sentence)
 
 
-def sentence_text_from_doc(doc):
-    regex = r'<sentence.*? text="(.*?)">'
-    return re.findall(regex, doc)
-
-
 def is_drug_bank_filename(path):
-    return path.count('DrugBank') > 0
+    return path.count('DrugBank') > 0 and path[-4:] == '.xml'
+
+
+def is_med_line_filename(path):
+    return path.count('MedLine') > 0 and path[-4:] == '.xml'
 
 
 def pos_bio_tagger(text, drug_positions):
@@ -72,11 +63,13 @@ def pos_bio_tagger(text, drug_positions):
 
 
 def parse_drug_xml(xml_dir):
+
     for root, dirs, files in os.walk(xml_dir):
+
         for file_name in files:
-            # TODO: add handling of Med Line dataset
             path = os.path.join(root, file_name)
-            if is_drug_bank_filename(path):
+
+            if is_drug_bank_filename(path) or is_med_line_filename(path):
                 doc = open(path, 'rb').read().decode('utf-8')
                 sentences = sentence_from_doc(doc)
 
@@ -90,11 +83,11 @@ def parse_drug_xml(xml_dir):
 
 
 print("Loading train data")
-train = list(parse_drug_xml(TRAIN_X_DIR))
+train = list(parse_drug_xml(TRAIN_DIR))
 print("Training chunker")
 chunker = DrugEntityChunker(train)
 print("Loading test data")
-test = list(parse_drug_xml(TEST_X_DIR))
+test = list(parse_drug_xml(TEST_DIR))
 print(f'Evaluating {len(test)} samples')
 score = chunker.evaluate([conlltags2tree([(w, t, iob) for (w, t), iob in iobs]) for iobs in test])
 print(str(score))
