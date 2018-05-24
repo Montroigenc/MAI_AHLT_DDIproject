@@ -1,8 +1,12 @@
 import re
 import os
 from drug_entity_chunker import DrugEntityChunker
-from nltk import word_tokenize, pos_tag, ne_chunk
+from nltk import word_tokenize, pos_tag, download, ne_chunk
 from nltk.chunk import conlltags2tree, tree2conlltags
+
+# NLTK dependencies
+download('punkt')
+download('averaged_perceptron_tagger')
 
 TRAIN_X_DIR = './Train/DrugBank'
 TRAIN_Y_DIR = './Train/DrugBankOutput'
@@ -93,4 +97,4 @@ print("Loading test data")
 test = list(parse_drug_xml(TEST_X_DIR))
 print(f'Evaluating {len(test)} samples')
 score = chunker.evaluate([conlltags2tree([(w, t, iob) for (w, t), iob in iobs]) for iobs in test])
-print(f'Accuracy {score.accuracy()}')
+print(str(score))
