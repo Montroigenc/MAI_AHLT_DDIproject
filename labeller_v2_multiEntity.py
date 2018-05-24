@@ -26,19 +26,19 @@ def parse_sentence(sentence):
     if entity is None:
         return "No entity"   #parsed
 
-    drug_positions, entity_types = extract_drug_position(entity)
+    entity_positions, entity_types = extract_drug_position(entity)
     bio_array = []; currentPos = 0
     for word in text.split(' '):
-        wordBio, currentPos = build_bio(word, text, drug_positions, currentPos)
+        wordBio, currentPos = build_bio(word, text, entity_positions, currentPos, entity_types)
         bio_array.append(wordBio)
 
-    return parsed.join(bio_array)
+    return parsed.join(bio_array), entity_types
 
 
-def build_bio(word, text, drug_positions, lastPos):
+def build_bio(word, text, entity_positions, lastPos, entity_types):
     word_start = text.find(word, lastPos)
 
-    for position in drug_positions:
+    for position in entity_positions:
         drug_start, drug_end = position[0], position[1]
 
         if word_start == drug_start:
@@ -65,7 +65,7 @@ def extract_drug_position(entities):
     if type(entities) != list:
         entities = [entities]
 
-    positions = []
+    positions = []; entityTypes = []
     for entity in entities:
         # if "drug" in entity['@type']:
         #     if ";" in entity['@charOffset']:
@@ -79,8 +79,14 @@ def extract_drug_position(entities):
         if ";" in entity['@charOffset']:
             entity = entity['@charOffset'].split(';')
             [(positions.append([int(char) for char in indEntity.split('-')])) for indEntity in entity]
+
+            for indEntity in entity:
+                positions.append([int(char) for char in indEntity.split('-')])
+                entityTypes.append([entity['@type'] for char in indEntity.split('-')])
+
         else:
             positions.append([int(char) for char in entity['@charOffset'].split('-')])
+            entityTypes.append(entity['@type'])
 
     return positions, entityTypes
 
