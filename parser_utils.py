@@ -1,6 +1,7 @@
 import re
 import os
 from nltk import word_tokenize, pos_tag
+from nltk.chunk import conlltags2tree
 
 
 def sentence_from_doc(doc):
@@ -14,9 +15,21 @@ def text_from_sentence(sentence):
     return re.findall(regex, sentence)[0]
 
 
-def drug_pos_from_sentence(sentence):
+def drug_pos_from_sentence(sentence, allowed_tags=None):
     regex = r'<entity.*?charOffset="(.*?)".*?type="(.*?)"'
-    return re.findall(regex, sentence)
+    matches = re.findall(regex, sentence)
+    drug_pos = []
+
+    for drug_pos_str, drug_type in matches:
+
+        if allowed_tags and drug_type not in allowed_tags:
+            continue
+
+        drug_pos_arr = drug_pos_str.split('-')  # expect '100-121' or '100-110;123-130'
+        drug_start, drug_end = int(drug_pos_arr[0]), int(drug_pos_arr[-1]) + 1
+        drug_pos.append((drug_start, drug_end, drug_type))
+
+    return drug_pos
 
 
 def is_drug_bank_filename(path):
@@ -38,9 +51,7 @@ def pos_bio_tagger(text, drug_positions):
         word_start = text.find(word, find_offset)
         find_offset += text.count(' ', find_offset, find_offset + len(word)) + len(word)
 
-        for drug_pos_str, drug_type in drug_positions:
-            drug_pos_arr = drug_pos_str.split('-')  # expect '100-121' or '100-110;123-130'
-            drug_start, drug_end = int(drug_pos_arr[0]), int(drug_pos_arr[-1]) + 1
+        for drug_start, drug_end, drug_type in drug_positions:
 
             if word_start == drug_start:
                 bio = f'B-{drug_type}'
@@ -53,7 +64,7 @@ def pos_bio_tagger(text, drug_positions):
     return extended_pos
 
 
-def parse_drug_iob(xml_dir):
+def parse_drug_iob(xml_dir, tags=None):
 
     for root, dirs, files in os.walk(xml_dir):
 
@@ -66,8 +77,8 @@ def parse_drug_iob(xml_dir):
 
                 for sentence in sentences:
                     text = text_from_sentence(sentence)
-                    drug_positions = drug_pos_from_sentence(sentence)
+                    drug_positions = drug_pos_from_sentence(sentence, allowed_tags=tags)
                     tagged_text = pos_bio_tagger(text, drug_positions)
 
                     if len(tagged_text) > 0:
-                        yield [((word, pos), bio) for word, pos, bio in tagged_text]
+                        yield conlltags2tree(tagged_text)
