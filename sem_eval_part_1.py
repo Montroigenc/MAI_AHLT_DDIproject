@@ -3,6 +3,7 @@ from drug_entity_chunker import ScikitLearnChunker
 from nltk import download
 from nltk.stem.snowball import SnowballStemmer
 from parser_utils import parse_drug_iob
+from sklearn.linear_model import Perceptron
 
 # NLTK dependencies
 download('punkt')
@@ -106,8 +107,12 @@ test_reader = parse_drug_iob(TEST_DIR, tags=tags)
 
 print("Training chunker")
 classes = ['O', 'B-drug', 'I-drug']
-chunker = ScikitLearnChunker.train(train_reader, feature_detector=features, all_classes=classes,
-                                   batch_size=300, n_iter=1)
+
+# Define classifier model
+clf = Perceptron(verbose=10, n_jobs=-1, n_iter=5)
+#chunker = ScikitLearnChunker.train(train_reader, feature_detector=features, all_classes=classes,batch_size=300, n_iter=1)
+chunker = ScikitLearnChunker.train(train_reader, feature_detector=features, all_classes=classes, clf=clf, batch_size=300)
+
 print("Evaluating chunker")
 accuracy = chunker.score(test_reader, classes)
 print("Accuracy ", accuracy)
