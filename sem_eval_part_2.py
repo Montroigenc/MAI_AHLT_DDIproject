@@ -127,7 +127,7 @@ def feature_builder(data_reader, classes):
         print('Genia tagging')
 
         try:
-            sent_list, _, pos, chunk, _ = list(zip(*tagger.parse(sent)))
+            _, _, _, chunk, _ = list(zip(*tagger.parse(sent)))
         except Exception as e:
             print(e)
             continue
